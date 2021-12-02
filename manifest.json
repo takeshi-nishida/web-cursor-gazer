@@ -2,20 +2,23 @@
     "name": "webgazer-chrome-extension",
     "description": "",
     "version": "0.0.1",
-    "manifest_version": 2,
-    "background": {
-      "scripts": ["src/background.js"]
-    },
-    "page_action": {
-      "default_title": "webgazer-chrome-extension"
+    "manifest_version": 3,
+    "action": {
+      "default_popup": "src/popup.html"
     },
     "content_scripts": [
       {
         "matches": ["https://www.amazon.co.jp/*"],
-        "js": ["src/webgazer.js", "src/content_script.js"]
+        "js": ["src/webgazer.js", "src/content_script.js"],
+        "css": ["src/content.css"]
       }
     ],
+    "options_ui": {
+      "page": "src/options.html",
+      "open_in_tab": false
+    },
     "permissions": [
+      "storage"
     ],
     "web_accessible_resources": [
     ]
