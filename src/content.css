@@ -8,3 +8,7 @@
   opacity: 1;
   z-index: 200;
 }
+
+.extension-blur {
+  filter: blur(2px);
+}

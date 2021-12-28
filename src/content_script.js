@@ -16,7 +16,27 @@ chrome.storage.local.get({
     spotlightSize: 200,
 }, (data) => {
     document.addEventListener("mousemove", e => {
-        spotlight.setAttribute("style", createSpotlight(e.clientX, e.clientY, data.spotlightSize));
+        // spotlight.setAttribute("style", createSpotlight(e.clientX, e.clientY, data.spotlightSize));
+
+        const hit = (n) => {
+            const x = e.clientX, y = e.clientY, r = 200;
+            const rect = n.getBoundingClientRect();
+            // return x > rect.x && x < rect.x + rect.width && y > rect.y && y < rect.y + rect.height;
+            const distX = Math.abs(x - rect.x - rect.width / 2);
+            const distY = Math.abs(y - rect.y - rect.height / 2);
+        
+            if (distX > (rect.width / 2 + r)) { return false; }
+            if (distY > (rect.height / 2 + r)) { return false; }
+        
+            if (distX <= rect.width / 2) { return true; } 
+            if (distY <= rect.height / 2) { return true; }
+        
+            const dx = distX - rect.width / 2;
+            const dy = distY - rect.height / 2;
+            return dx * dx + dy * dy <= r * r;
+        }
+
+        recursiveCheckAndApply(document.body, hit, blurNode);
     });
 })
 
@@ -74,4 +94,24 @@ function createSpotlight(x, y, size){
         transparent,
         transparent ${size}px,
         rgba(0, 0, 0, 0.6) ${size * 2}px)`
+}
+
+function recursiveCheckAndApply(n, hit, f){
+    const cs = n.children;
+    for(let i = 0; i < cs.length; i++){
+        recursiveCheckAndApply(cs[i], hit, f);
+    }
+
+    if(n.children.length == 0){
+        f(n, hit);
+    }
+}
+
+function blurNode(n, hit){
+    if(!hit(n)){
+        n.classList.add("extension-blur");
+    }
+    else{
+        n.classList.remove("extension-blur");
+    }
 }
