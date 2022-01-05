@@ -17,6 +17,19 @@
       "page": "src/options.html",
       "open_in_tab": false
     },
+    "background": {
+      "service_worker": "src/background.js"
+    },
+    "commands": {
+      "toggle-blur": {
+        "suggested_key": { "default": "Alt+1" },
+        "description": "Toggle Blur"
+      },
+      "toggle-spotlight": {
+        "suggested_key": { "default": "Alt+2" },
+        "description": "Toggle Spotlight"
+      }
+    },
     "permissions": [
       "storage", "tabs"
     ],

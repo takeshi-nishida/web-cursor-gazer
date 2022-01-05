@@ -8,6 +8,9 @@ console.log("running webgazer-chrome-extension...");
 
 //webgazer.begin();
 
+let useSpotlight = false;
+let useBlur = false;
+
 const spotlight = document.createElement("div");
 spotlight.classList.add("extension-spotlight");
 document.body.appendChild(spotlight);
@@ -16,37 +19,44 @@ chrome.storage.local.get({
     spotlightSize: 200,
 }, (data) => {
     document.addEventListener("mousemove", e => {
-        // spotlight.setAttribute("style", createSpotlight(e.clientX, e.clientY, data.spotlightSize));
-
-        const hit = (n) => {
-            const x = e.clientX, y = e.clientY, r = 200;
-            const rect = n.getBoundingClientRect();
-            // return x > rect.x && x < rect.x + rect.width && y > rect.y && y < rect.y + rect.height;
-            const distX = Math.abs(x - rect.x - rect.width / 2);
-            const distY = Math.abs(y - rect.y - rect.height / 2);
-        
-            if (distX > (rect.width / 2 + r)) { return false; }
-            if (distY > (rect.height / 2 + r)) { return false; }
-        
-            if (distX <= rect.width / 2) { return true; } 
-            if (distY <= rect.height / 2) { return true; }
-        
-            const dx = distX - rect.width / 2;
-            const dy = distY - rect.height / 2;
-            return dx * dx + dy * dy <= r * r;
+        if(useSpotlight){
+            spotlight.setAttribute("style", createSpotlight(e.clientX, e.clientY, data.spotlightSize));
         }
 
-        recursiveCheckAndApply(document.body, hit, blurNode);
+        if(useBlur){
+            const hit = (n) => {
+                const x = e.clientX, y = e.clientY, r = 200;
+                const rect = n.getBoundingClientRect();
+                // return x > rect.x && x < rect.x + rect.width && y > rect.y && y < rect.y + rect.height;
+                const distX = Math.abs(x - rect.x - rect.width / 2);
+                const distY = Math.abs(y - rect.y - rect.height / 2);
+            
+                if (distX > (rect.width / 2 + r)) { return false; }
+                if (distY > (rect.height / 2 + r)) { return false; }
+            
+                if (distX <= rect.width / 2) { return true; } 
+                if (distY <= rect.height / 2) { return true; }
+            
+                const dx = distX - rect.width / 2;
+                const dy = distY - rect.height / 2;
+                return dx * dx + dy * dy <= r * r;
+            }
+    
+            recursiveCheckAndApply(document.body, hit, blurNode);
+        }
     });
 })
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log("message received: " + request.type);
     if(!sender.tab){ // message was from popup.js
         switch(request.type){
             case "start recording": startRecording() ; break;
             case "stop recording": stopRecording() ; break;
             case "replay": replay() ; break;
             case "log": break;
+            case "toggle-spotlight": toggleSpotlight(); break;
+            case "toggle-blur": toggleBlur(); break;
         }
         sendResponse(cursorLog);
     }
@@ -114,4 +124,14 @@ function blurNode(n, hit){
     else{
         n.classList.remove("extension-blur");
     }
+}
+
+function toggleSpotlight(){
+    useSpotlight = !useSpotlight;
+    spotlight.style.visibility = useSpotlight ? "visible" : "hidden";
+}
+
+function toggleBlur(){
+    useBlur = !useBlur;
+    recursiveCheckAndApply(document.body, () => !useBlur, blurNode);
 }
