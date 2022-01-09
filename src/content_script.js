@@ -15,37 +15,49 @@ const spotlight = document.createElement("div");
 spotlight.classList.add("extension-spotlight");
 document.body.appendChild(spotlight);
 
+let lastMouseEvent = null;
+
 chrome.storage.local.get({
     spotlightSize: 200,
 }, (data) => {
     document.addEventListener("mousemove", e => {
+        lastMouseEvent = e;
+
         if(useSpotlight){
             spotlight.setAttribute("style", createSpotlight(e.clientX, e.clientY, data.spotlightSize));
         }
 
         if(useBlur){
-            const hit = (n) => {
-                const x = e.clientX, y = e.clientY, r = 200;
-                const rect = n.getBoundingClientRect();
-                // return x > rect.x && x < rect.x + rect.width && y > rect.y && y < rect.y + rect.height;
-                const distX = Math.abs(x - rect.x - rect.width / 2);
-                const distY = Math.abs(y - rect.y - rect.height / 2);
-            
-                if (distX > (rect.width / 2 + r)) { return false; }
-                if (distY > (rect.height / 2 + r)) { return false; }
-            
-                if (distX <= rect.width / 2) { return true; } 
-                if (distY <= rect.height / 2) { return true; }
-            
-                const dx = distX - rect.width / 2;
-                const dy = distY - rect.height / 2;
-                return dx * dx + dy * dy <= r * r;
-            }
-    
+            const hit = buildHitFunction(e.clientX, e.clientY, data.spotlightSize);
             recursiveCheckAndApply(document.body, hit, blurNode);
         }
     });
-})
+
+    document.addEventListener('scroll', e => {
+        if(useBlur && lastMouseEvent){
+            const hit = buildHitFunction(lastMouseEvent.clientX, lastMouseEvent.clientY, data.spotlightSize);
+            recursiveCheckAndApply(document.body, hit, blurNode);
+        }
+    });
+});
+
+function buildHitFunction(x, y, r){
+    return (n) => {
+        const rect = n.getBoundingClientRect();
+        const distX = Math.abs(x - rect.x - rect.width / 2);
+        const distY = Math.abs(y - rect.y - rect.height / 2);
+    
+        if (distX > (rect.width / 2 + r)) { return false; }
+        if (distY > (rect.height / 2 + r)) { return false; }
+    
+        if (distX <= rect.width / 2) { return true; } 
+        if (distY <= rect.height / 2) { return true; }
+    
+        const dx = distX - rect.width / 2;
+        const dy = distY - rect.height / 2;
+        return dx * dx + dy * dy <= r * r;
+    }
+}
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log("message received: " + request.type);
@@ -64,38 +76,52 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 let cursorLog;
 
-function recordMouse(e){
-    cursorLog.push({ x: e.clientX, y: e.clientY, t: e.timeStamp });
+function record(e){
+    const scrollLeft = document.documentElement.scrollLeft;
+    const scrollTop = document.documentElement.scrollTop;
+    const x = e.clientX, y = e.clientY, t = e.timeStamp;
+    cursorLog.push({ x, y, t, scrollTop, scrollLeft });
 }
+
+function recordMouseMove(e){ record(e); }
+function recordScroll(e){ if(lastMouseEvent) record(lastMouseEvent); }
 
 function startRecording(){
     console.log("start recording");
     cursorLog = [];
-    document.addEventListener("mousemove", recordMouse);
+    document.addEventListener("mousemove", recordMouseMove);
+    document.addEventListener("scroll", recordScroll);
 }
 
 function stopRecording(){
     console.log("stop recording");
-    document.removeEventListener("mousemove", recordMouse);
+    document.removeEventListener("mousemove", recordMouseMove);
+    document.removeEventListener("scroll", recordScroll);
 }
 
 function replay(){
     console.log("replay");
 
-    let i = 0;
+    chrome.storage.local.get({
+        spotlightSize: 200,
+    }, (data) => {
+        let i = 0;
 
-    replayImpl = () => {
-        if(i < cursorLog.length){
-            const e = cursorLog[i];
-            spotlight.setAttribute("style", createSpotlight(e.x, e.y, 200));
-            if(i + 1 < cursorLog.length){
-                const next = cursorLog[++i];
-                setTimeout(replayImpl, next.t - e.t);
+        replayImpl = () => {
+            if(i < cursorLog.length){
+                const e = cursorLog[i];
+                console.log(e);
+                spotlight.setAttribute("style", createSpotlight(e.x, e.y, data.spotlightSize));
+                document.documentElement.scrollTo(e.scrollLeft, e.scrollTop);
+                if(i + 1 < cursorLog.length){
+                    const next = cursorLog[++i];
+                    setTimeout(replayImpl, next.t - e.t);
+                }
             }
-        }
-    };
+        };
 
-    replayImpl();
+        replayImpl();
+    });
 }
 
 function createSpotlight(x, y, size){
