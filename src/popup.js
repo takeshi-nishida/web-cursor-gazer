@@ -3,11 +3,13 @@ const stopRecordingButton = document.getElementById("stopRecording");
 const replayButton = document.getElementById("replay");
 const csvButton = document.getElementById("prepareCSV");
 const csvLink = document.getElementById("csv");
+const loadCSVButton = document.getElementById("loadCSV");
 
 startRecordingButton.addEventListener("click", startRecording);
 stopRecordingButton.addEventListener("click", stopRecording);
 replayButton.addEventListener("click", replay);
 prepareCSV.addEventListener("click", requestLog);
+loadCSVButton.addEventListener("click", loadCSV)
 
 async function startRecording(){
     const tab = await getCurrentTab();
@@ -27,6 +29,11 @@ async function replay(){
 async function requestLog(){
     const tab = await getCurrentTab();    
     chrome.tabs.sendMessage(tab.id, { type: "log" }, res => csv(res));
+}
+
+async function loadCSV(){
+    const tab = await getCurrentTab();    
+    chrome.tabs.sendMessage(tab.id, { type: "load-csv" }, res => console.log(res));
 }
 
 async function getCurrentTab(){

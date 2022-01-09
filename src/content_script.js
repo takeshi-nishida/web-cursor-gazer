@@ -80,6 +80,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             case "stop recording": stopRecording() ; break;
             case "replay": replay() ; break;
             case "log": break;
+            case "load-csv": loadCSV(); break;
             case "toggle-spotlight": toggleSpotlight(); break;
             case "toggle-blur": toggleBlur(); break;
         }
@@ -175,4 +176,44 @@ function toggleSpotlight(){
 function toggleBlur(){
     useBlur = !useBlur;
     recursiveCheckAndApply(document.body, () => !useBlur, blurNode);
+}
+
+const showOpenFileDialog = () => {
+    return new Promise(resolve => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.csv';
+        input.onchange = event => { resolve(event.target.files[0]); };
+        input.click();
+    });
+};
+
+const readAsText = file => {
+    return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.readAsText(file);
+        reader.onload = () => { resolve(reader.result); };
+    });
+};
+
+async function loadCSV(){
+    const file = await showOpenFileDialog();
+    const content = await readAsText(file);
+
+    const lines = content.split("\n");
+    const header = lines.shift().split(",");
+
+    console.log(lines);
+
+    cursorLog = [];
+
+    lines.map(line => {
+        const a = line.split(",");
+        const o = {};
+        header.forEach((h, i) => { o[h] = a[i] });
+        cursorLog.push(o);
+    });
+
+    console.log(cursorLog);
+    console.log("CSV loaded.");
 }
