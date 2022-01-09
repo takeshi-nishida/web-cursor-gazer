@@ -16,6 +16,7 @@ spotlight.classList.add("extension-spotlight");
 document.body.appendChild(spotlight);
 
 let lastMouseEvent = null;
+let ticking = false;
 
 chrome.storage.local.get({
     spotlightSize: 200,
@@ -23,20 +24,32 @@ chrome.storage.local.get({
     document.addEventListener("mousemove", e => {
         lastMouseEvent = e;
 
-        if(useSpotlight){
-            spotlight.setAttribute("style", createSpotlight(e.clientX, e.clientY, data.spotlightSize));
-        }
-
-        if(useBlur){
-            const hit = buildHitFunction(e.clientX, e.clientY, data.spotlightSize);
-            recursiveCheckAndApply(document.body, hit, blurNode);
+        if(!ticking){
+            window.requestAnimationFrame(() => {
+                if(useSpotlight){
+                    spotlight.setAttribute("style", createSpotlight(e.clientX, e.clientY, data.spotlightSize));
+                }
+        
+                if(useBlur){
+                    const hit = buildHitFunction(e.clientX, e.clientY, data.spotlightSize);
+                    recursiveCheckAndApply(document.body, hit, blurNode);
+                }
+                ticking = false;
+            });
+            ticking = true;
         }
     });
 
     document.addEventListener('scroll', e => {
-        if(useBlur && lastMouseEvent){
-            const hit = buildHitFunction(lastMouseEvent.clientX, lastMouseEvent.clientY, data.spotlightSize);
-            recursiveCheckAndApply(document.body, hit, blurNode);
+        if(!ticking){
+            window.requestAnimationFrame(() => {
+                if(useBlur && lastMouseEvent){
+                    const hit = buildHitFunction(lastMouseEvent.clientX, lastMouseEvent.clientY, data.spotlightSize);
+                    recursiveCheckAndApply(document.body, hit, blurNode);
+                }
+                ticking = false;    
+            });
+            ticking = true;
         }
     });
 });
@@ -102,6 +115,8 @@ function stopRecording(){
 function replay(){
     console.log("replay");
 
+    recursiveCheckAndApply(document.body, () => true, blurNode);
+
     chrome.storage.local.get({
         spotlightSize: 200,
     }, (data) => {
@@ -110,7 +125,6 @@ function replay(){
         replayImpl = () => {
             if(i < cursorLog.length){
                 const e = cursorLog[i];
-                console.log(e);
                 spotlight.setAttribute("style", createSpotlight(e.x, e.y, data.spotlightSize));
                 document.documentElement.scrollTo(e.scrollLeft, e.scrollTop);
                 if(i + 1 < cursorLog.length){
@@ -133,13 +147,14 @@ function createSpotlight(x, y, size){
 }
 
 function recursiveCheckAndApply(n, hit, f){
+    if(n.children.length == 0){
+        f(n, hit);
+        return;
+    }
+    
     const cs = n.children;
     for(let i = 0; i < cs.length; i++){
         recursiveCheckAndApply(cs[i], hit, f);
-    }
-
-    if(n.children.length == 0){
-        f(n, hit);
     }
 }
 
