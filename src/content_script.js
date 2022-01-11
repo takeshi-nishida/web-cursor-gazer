@@ -57,19 +57,30 @@ chrome.storage.local.get({
 function buildHitFunction(x, y, r){
     return (n) => {
         const rect = n.getBoundingClientRect();
-        const distX = Math.abs(x - rect.x - rect.width / 2);
-        const distY = Math.abs(y - rect.y - rect.height / 2);
-    
-        if (distX > (rect.width / 2 + r)) { return false; }
-        if (distY > (rect.height / 2 + r)) { return false; }
-    
-        if (distX <= rect.width / 2) { return true; } 
-        if (distY <= rect.height / 2) { return true; }
-    
-        const dx = distX - rect.width / 2;
-        const dy = distY - rect.height / 2;
-        return dx * dx + dy * dy <= r * r;
+        return collideRectCircle(rect.x, rect.y, rect.width, rect.height, x, y, r);
     }
+}
+
+function collideRectCircle(rx, ry, rw, rh, cx, cy, radius) {
+    let testX = cx;
+    let testY = cy;
+  
+    // which edge is closest?
+    if (cx < rx){ testX = rx; } // left edge
+    else if (cx > rx+rw){ testX = rx + rw; } // right edge
+  
+    if (cy < ry){ testY = ry; } // top edge
+    else if (cy > ry+rh){ testY = ry+rh } // bottom edge
+  
+    // get distance from closest edges
+    const distance = dist(cx, cy, testX, testY);
+
+    return distance <= radius;
+};
+
+function dist(x1, y1, x2, y2){
+    const dx = x1 - x2, dy = y1 - y2;
+    return Math.sqrt(dx * dx + dy * dy);
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
