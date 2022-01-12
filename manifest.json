@@ -28,6 +28,14 @@
       "toggle-spotlight": {
         "suggested_key": { "default": "Alt+2" },
         "description": "Toggle Spotlight"
+      },
+      "start recording": {
+        "suggested_key": { "default": "Alt+9" },
+        "description": "Record Start"
+      },
+      "stop recording": {
+        "suggested_key": { "default": "Alt+0" },
+        "description": "Record Stop"
       }
     },
     "permissions": [
